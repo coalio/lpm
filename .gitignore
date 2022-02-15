@@ -1,0 +1,15 @@
+# Compiled
+lpm
+*.a
+*.o
+build/*
+
+# CMake
+CMakeFiles
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Other
+.vscode
+!build/*.sh

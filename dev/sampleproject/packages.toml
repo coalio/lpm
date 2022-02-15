@@ -1,0 +1,16 @@
+[project]
+name = "sampleproject"
+version = "0.1"
+author = "Coal"
+description = "Sample project. Uses the hamming distance to calculate the similarity between two strings."
+license = "GPL v3"
+homepage = "tabe.me"
+repository = "https://github.com/coalio/lpm"
+
+# Main entry point (when lpm start is called)
+main = "main.lua"
+# Valid lua versions: PUC-Lua/LuaJIT/Lua <version>
+lua_version = "PUC-Lua 5.2"
+
+[dependencies]
+hamming = "latest"
