@@ -5,10 +5,11 @@ Usage: lpm <command> [... args]
            ├── remove: Removes a module
            ├── audit: Checks the integrity of all installed packages
            ├── show: Displays information about a package
-           └── purge: Uninstalls lua_modules
+           ├── purge: Uninstalls lua_modules
+           └── help: Displays this help message
 
 Options:
-    --help [-h]: Show this screen.
+    help [--help, -h]: Displays this help message
 
     init: Initializes a packages.toml file.
         --name=<name>
@@ -25,19 +26,33 @@ Options:
         --recursive [-r]: Installs all packages.toml files recursively, starting at the current directory.
 
     add <package_name>: Installs a package
-        --global [-g]: Install package globally. Only available for compiled packages.
+        --global [-g]: Install package globally.
         --version: Install specific version of this package.
-        --lua-version=<lua-version>: Installs the latest version of this package compliant with this lua version.
+        --lua-version=<lua-version>: Installs the latest version of this package compliant with this Lua version.
+                                     (--version and --lua-version are mutually exclusive)
 
     remove <package_name>: Removes a package
-        --global [-g]: Removes package globally. Only available for compiled packages.
-        --version: Removes specific version of this package.
+        --global [-g]: Removes package globally.
+
+    update <package_name>: Updates a package
+        --global [-g]: Updates package globally.
+
+    list: Lists all installed packages
+        --global [-g]: Lists all globally installed packages.
+
+    search <package_name>: Searches for a package in all available repositories
+
+    repository <action>: Manages repositories
+        add <repository>: Adds a repository
+        remove <repository>: Removes a repository
+        list: Lists all available repositories
+        update: Updates all repositories
 
     audit: Checks the integrity of all installed packages in the current directory.
         --recursive [-r]: Does the above but recursively, starting at current directory.
 
     show <package_name>: Displays information about a package
-        --global [-g]: Displays information about a package globally. Only available for compiled packages.
+        --global [-g]: Displays information about a package globally.
         --version: Displays information about a specific version of this package.
 
     purge: Uninstalls all lua_modules

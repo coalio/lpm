@@ -10,3 +10,5 @@
 #else
     #define LPM_PRINT_ERROR(msg)
 #endif
+
+#define LPM_PRINT(msg) std::cout << msg << std::endl

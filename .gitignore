@@ -13,3 +13,4 @@ Makefile
 # Other
 .vscode
 !build/*.sh
+!lpm/
