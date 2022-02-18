@@ -6,11 +6,10 @@ description = "Sample project. Uses the hamming distance to calculate the simila
 license = "GPL v3"
 homepage = "tabe.me"
 repository = "https://github.com/coalio/lpm"
-
 # Main entry point (when lpm start is called)
 main = "main.lua"
-# Valid lua versions: PUC-Lua/LuaJIT/Lua <version>
-lua_version = "PUC-Lua 5.2"
+# Valid lua versions: LuaJIT/Lua<version>
+lua_version = "Lua5.2"
 
 [dependencies]
 hamming = "latest"

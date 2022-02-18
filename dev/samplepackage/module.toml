@@ -1,0 +1,27 @@
+[package]
+name = "hamming"
+require="hamming.lua"
+version = "1.0"
+summary = "A package that provides a Hamming distance function"
+license = "GPL-3.0"
+homepage = "https://tabe.me/"
+repository = "https://github.com/coalio/lpm"
+maintainer = "Coal <coalio.gg@gmail.com>"
+lua_version = "*"
+
+[demo]
+main="hamming_demo.lua"
+lua_version=["LuaJIT2.0", "Lua5.3", "*"]
+
+# [support]
+# if lua_version isnt present, its assumed to be compatible with all versions
+# lua_version = ["Lua5.1", "Lua5.2", "Lua5.3", "LuaJIT2.0"]
+# if platform isnt present, its assumed to be compatible with all platforms
+# platform = ["Windows", "Linux", "OSX", "BSD", "Unix"]
+
+# [dependencies]
+# exampledependency = ">= 1.0, < 2.0"
+
+# [build]
+# build-command = "make"
+# build-dependencies = ["gcc >= 4.8.2", "make"]

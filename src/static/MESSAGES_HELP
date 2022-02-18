@@ -2,6 +2,7 @@ Usage: lpm <command> [... args]
            ├── init: Iniializes a packages.toml with basic information
            ├── install: Finds and installs a packages.toml
            ├── add: Adds a new package
+           ├── run: Runs a package
            ├── remove: Removes a module
            ├── audit: Checks the integrity of all installed packages
            ├── show: Displays information about a package
@@ -27,9 +28,12 @@ Options:
 
     add <package_name>: Installs a package
         --global [-g]: Install package globally.
-        --version: Install specific version of this package.
-        --lua-version=<lua-version>: Installs the latest version of this package compliant with this Lua version.
-                                     (--version and --lua-version are mutually exclusive)
+        --version: Install specific version of this package. Defaults to latest version.
+        --lua-version <lua-version>: Installs the package for this lua version.
+
+    run <package_name | path/to/package>: Runs a package's entry point, if runnable
+        --lua-version <lua-version>: Runs the package for this lua version.
+                                     Cant be used if path/to/package is specified.
 
     remove <package_name>: Removes a package
         --global [-g]: Removes package globally.
