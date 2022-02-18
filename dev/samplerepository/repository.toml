@@ -5,13 +5,9 @@ summary = "A repository for everything coal related"
 [packages.hamming]
 summary = "A package for finding the hamming distance between two strings"
 package_type = "zip"
-# no build command, package is installed as-is
-# no build dependencies
 "1.0" = { source = "https://tabe.me/packages/hamming.1.0.zip" }
 
 [packages.wolf]
 summary = "A Lua library for creating static websites"
 package_type = "git"
-build-command = "make"
-build-dependencies = ["gcc >= 4.8.2", "make"]
 "1.0" = { source = "git://github.com/coalio/wolf" }
