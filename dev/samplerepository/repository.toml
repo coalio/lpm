@@ -10,4 +10,4 @@ package_type = "zip"
 [packages.wolf]
 summary = "A Lua library for creating static websites"
 package_type = "git"
-"1.0" = { source = "git://github.com/coalio/wolf" }
+"1.0" = { source = "git://github.com/coalio/wolf.git" }
