@@ -5,19 +5,21 @@
 
 namespace Command {
     enum Type {
-        HELP,
-        INIT,
-        INSTALL,
-        ADD,
-        RUN,
-        REMOVE,
-        UPDATE,
-        LIST,
-        SEARCH,
-        REPOSITORY,
-        AUDIT,
-        SHOW,
-        PURGE
+        ADD = 0,
+        AUDIT = 1,
+        HELP = 2,
+        INIT = 3,
+        INSTALL = 4,
+        LIST = 5,
+        PURGE = 6,
+        REMOVE = 7,
+        REPOSITORY = 8,
+        RUN = 9,
+        SEARCH = 10,
+        SHOW = 11,
+        UPDATE = 12,
+
+        UNKNOWN = -1
     };
 
     // Pass a command to its respective handler.

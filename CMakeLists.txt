@@ -14,4 +14,14 @@ set_target_properties(lpm-cli PROPERTIES LINKER_LANGUAGE CXX OUTPUT_NAME lpm)
 # Include the framework
 add_subdirectory(src/library)
 
-target_link_libraries(lpm-cli PRIVATE lpm-lib)
+# Include source files
+add_library(lpm-cli-src
+    ./src/command.cpp
+)
+
+# Include command handlers
+add_library(lpm-handlers
+    ./src/handlers/install.cpp
+)
+
+target_link_libraries(lpm-cli PRIVATE lpm-lib lpm-cli-src lpm-handlers)

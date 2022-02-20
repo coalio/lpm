@@ -2,6 +2,15 @@
 #include "lpm/types.h"
 
 args_map_t const LPM_VALID_ARGS {
+    {"add", {
+        "package_name",
+        "global",
+        "version",
+        "lua-version"
+    }},
+    {"audit", {
+        "recursive"
+    }},
     {"help", {""}},
     {"init", {
         "name",
@@ -17,44 +26,35 @@ args_map_t const LPM_VALID_ARGS {
     {"install", {
         "recursive"
     }},
-    {"add", {
-        "package_name",
-        "global",
-        "version",
-        "lua-version"
+    {"list", {
+        "global"
     }},
-    {"run", {
-        "package_name",
-        "lua-version"
+    {"purge", {
+        "recursive"
     }},
     {"remove", {
         "global",
         "version",
         "lua-version"
     }},
-    {"update", {
-        "package_name",
-        "global"
-        "lua-version"
-    }},
-    {"list", {
-        "global"
-    }},
-    {"search", {
-        "package_name"
-    }},
     {"repository", {
         "action"
     }},
-    {"audit", {
-        "recursive"
+    {"run", {
+        "package_name",
+        "lua-version"
+    }},
+    {"search", {
+        "package_name"
     }},
     {"show", {
         "package_name",
         "global",
         "version"
     }},
-    {"purge", {
-        "recursive"
+    {"update", {
+        "package_name",
+        "global"
+        "lua-version"
     }}
 };

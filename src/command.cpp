@@ -3,6 +3,7 @@
 #include "lpm/macros.h"
 #include "command.h"
 #include "errorhandling.h"
+#include "handlers/handlers.h"
 
 bool Command::execute(Type command_type, args_t& args) {
     try {

@@ -1,15 +1,24 @@
 Usage: lpm <command> [... args]
+           ├── add: Adds a new package
+           ├── audit: Checks the integrity of all installed packages
+           ├── help: Displays this help message
            ├── init: Iniializes a packages.toml with basic information
            ├── install: Finds and installs a packages.toml
-           ├── add: Adds a new package
-           ├── run: Runs a package
-           ├── remove: Removes a module
-           ├── audit: Checks the integrity of all installed packages
-           ├── show: Displays information about a package
            ├── purge: Uninstalls lua_modules
-           └── help: Displays this help message
+           ├── remove: Removes a module
+           ├── run: Runs a package
+           ├── show: Displays information about a package
+           └── update: Updates a package
 
 Options:
+    add <package_name>: Installs a package
+        --global [-g]: Install package globally.
+        --version: Install specific version of this package. Defaults to latest version.
+        --lua-version <lua-version>: Installs the package for this lua version.
+
+    audit: Checks the integrity of all installed packages in the current directory.
+        --recursive [-r]: Does the above but recursively, starting at current directory.
+
     help [--help, -h]: Displays this help message
 
     init: Initializes a packages.toml file.
@@ -26,25 +35,14 @@ Options:
     install: Finds a packages.toml file and installs all modules in it.
         --recursive [-r]: Installs all packages.toml files recursively, starting at the current directory.
 
-    add <package_name>: Installs a package
-        --global [-g]: Install package globally.
-        --version: Install specific version of this package. Defaults to latest version.
-        --lua-version <lua-version>: Installs the package for this lua version.
-
-    run <package_name | path/to/package>: Runs a package's entry point, if runnable
-        --lua-version <lua-version>: Runs the package for this lua version.
-                                     Cant be used if path/to/package is specified.
-
-    remove <package_name>: Removes a package
-        --global [-g]: Removes package globally.
-
-    update <package_name>: Updates a package
-        --global [-g]: Updates package globally.
-
     list: Lists all installed packages
         --global [-g]: Lists all globally installed packages.
 
-    search <package_name>: Searches for a package in all available repositories
+    purge: Uninstalls all lua_modules
+        --recursive [-r]: Uninstalls all lua_modules recursively, starting at current directory.
+
+    remove <package_name>: Removes a package
+        --global [-g]: Removes package globally.
 
     repository <action>: Manages repositories
         add <repository>: Adds a repository
@@ -52,12 +50,14 @@ Options:
         list: Lists all available repositories
         update: Updates all repositories
 
-    audit: Checks the integrity of all installed packages in the current directory.
-        --recursive [-r]: Does the above but recursively, starting at current directory.
+    run <package_name | path/to/package>: Runs a package's entry point, if runnable
+        --lua-version <lua-version>: Runs the package for this lua version.
+                                     Cant be used if path/to/package is specified.
+    search <package_name>: Searches for a package in all available repositories
 
     show <package_name>: Displays information about a package
         --global [-g]: Displays information about a package globally.
         --version: Displays information about a specific version of this package.
 
-    purge: Uninstalls all lua_modules
-        --recursive [-r]: Uninstalls all lua_modules recursively, starting at current directory.
+    update <package_name>: Updates a package
+        --global [-g]: Updates package globally.

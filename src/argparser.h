@@ -7,8 +7,8 @@
 
 namespace ArgParser {
     // Check if the arguments provided and the command are valid.
-    bool validate(std::string& command, args_t& args, const args_map_t& valid_args) {
-        for (auto& valid_arg_pair : valid_args) {
+    Command::Type validate(std::string& command, args_t& args, const args_map_t& valid_args) {
+        for (int index = 0; auto& valid_arg_pair : valid_args) {
             // Check if the command provided is valid.
             if (valid_arg_pair.first == command) {
                 auto& valid_values = valid_arg_pair.second;
@@ -24,16 +24,18 @@ namespace ArgParser {
                         ) == valid_values.end()
                     ) {
                         LPM_PRINT_ERROR("Unrecognized parameter: " << user_arg.first);
-                        return false;
+                        return Command::Type::UNKNOWN;
                     }
                 }
 
-                return true;
+                return (Command::Type) index;
             }
+
+            ++index;
         }
 
         LPM_PRINT_ERROR("Unrecognized command: " << command);
-        return false;
+        return Command::Type::UNKNOWN;
     }
 
     args_t parse(int& argc, char* argv[], int start_index) {
