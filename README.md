@@ -2,6 +2,14 @@
 
 LPM is a package manager for the Lua language, designed to be flexible, extensible and easy to use.
 
+<span>Last Commit ([lpm](https://github.com/coalio/lpm/commits/master)):
+[![Last Commit (lpm)](https://img.shields.io/github/last-commit/coalio/lpm)](https://github.com/coalio/lpm/commits/master)
+</span>
+
+<span>Last Commit ([lib-lpm](https://github.com/coalio/lib-lpm)):
+[![Last Commit (lib-lpm)](https://img.shields.io/github/last-commit/coalio/lib-lpm)](https://github.com/coalio/lib-lpm/commits/master)
+</span>
+
 ```
 Usage: lpm <command> [... args]
            ├── init: Iniializes a packages.toml with basic information
