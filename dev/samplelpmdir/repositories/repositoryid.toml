@@ -1,3 +1,7 @@
+# Exactly the same toml as the samplerepository directory
+# In this case, this one is the cache, while the other is the repository
+# hosted online somewhere else.
+
 [repository]
 name = "Coal's Repository"
 summary = "A repository for everything coal related"

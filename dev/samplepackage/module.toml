@@ -22,6 +22,13 @@ lua_version=["LuaJIT2.0", "Lua5.3", "*"]
 # [dependencies]
 # exampledependency = ">= 1.0, < 2.0"
 
-# [build]
-# build-command = "make"
-# build-dependencies = ["gcc >= 4.8.2", "make"]
+[pre-build]
+type = "cmake"
+args = ["."]
+
+[build]
+type = "make"
+
+[post-build]
+type = "make"
+args = ["install"]
