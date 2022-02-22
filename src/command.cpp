@@ -17,7 +17,7 @@ bool Command::execute(Type command_type, args_t& args) {
         }
     } catch (...) {
         LPM_PRINT_ERROR("Failed to execute command: " << command_type);
-        LPM_PRINT_DEBUG("Exception: " << ErrorHandling::what());
+        LPM_PRINT_DEBUG("Exception:\n" << ErrorHandling::what());
     }
 
     return true;
