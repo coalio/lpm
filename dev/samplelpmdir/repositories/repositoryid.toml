@@ -10,10 +10,10 @@ summary = "A repository for everything coal related"
 summary = "A package for finding the hamming distance between two strings"
 package_type = "zip"
 [packages.hamming.versions]
-"1.0" = { source = "https://tabe.me/packages/hamming.1.0.zip" }
+"1.0" = "https://tabe.me/packages/hamming.1.0.zip"
 
 [packages.wolf]
 summary = "A Lua library for creating static websites"
 package_type = "git"
 [packages.wolf.versions]
-"1.0" = { source = "git://github.com/coalio/wolf.git" }
+"1.0" = "git://github.com/coalio/wolf.git"

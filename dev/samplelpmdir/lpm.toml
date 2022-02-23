@@ -7,6 +7,6 @@ packages_db = "./packages.sqlite"
 "Lua5.3" = "/usr/bin/lua5.3"
 
 [sources.repositoryid]
-trusted = true
-cache = "$LPM_ROOT/repositories/repositoryid.toml"
+permission = "trusted"
+cache = "${LPM_ROOT}/repositories/repositoryid.toml"
 url = "https://tabe.me/repositories/coal.toml"
