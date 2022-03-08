@@ -13,22 +13,11 @@ lua_version = "*"
 main="hamming_demo.lua"
 lua_version=["LuaJIT2.0", "Lua5.3", "*"]
 
-# [support]
-# if lua_version isnt present, its assumed to be compatible with all versions
-# lua_version = ["Lua5.1", "Lua5.2", "Lua5.3", "LuaJIT2.0"]
-# if platform isnt present, its assumed to be compatible with all platforms
-# platform = ["Windows", "Linux", "OSX", "BSD", "Unix"]
-
-# [dependencies]
-# exampledependency = ">= 1.0, < 2.0"
-
-[pre-build]
-type = "cmake"
-args = ["."]
-
-[build]
-type = "make"
-
-[post-build]
-type = "make"
-args = ["install"]
+[support]
+# lua_version is obligatory, but you can use "*" if you want
+# however, that will throw a warning when installing as its possible that
+# this package is not compatible with the most recent Lua version
+lua_version = ["*"]
+# platform is also obligatory, but you can also use "*" if you want
+# in this case, it wont throw a warning but its not recommended
+platform = ["*"]

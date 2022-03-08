@@ -10,19 +10,18 @@ endif ()
 
 project(lpm-cli)
 
-include_directories(./src ./src/library)
-
 # Specify executable and target properties
 add_executable(lpm-cli src/main.cpp)
+
+# Add lpm-lib
+include_directories(./src ./src/library)
+
 set_target_properties(
     lpm-cli
     PROPERTIES
     LINKER_LANGUAGE CXX
     OUTPUT_NAME lpm
 )
-
-# Include the framework
-add_subdirectory(src/library)
 
 # Include source files
 add_library(lpm-cli-src
@@ -34,10 +33,13 @@ add_library(lpm-handlers
     ./src/handlers/install.cpp
 )
 
+# Include the library
+add_subdirectory(src/library)
+
 # Add install target
 install(TARGETS lpm-cli
     RUNTIME DESTINATION ${BIN_INSTALL_DIR}
 )
 
 # Link the libraries to the target
-target_link_libraries(lpm-cli PRIVATE lpm-cli-src lpm-handlers lpm-lib)
+target_link_libraries(lpm-cli PRIVATE lpm-cli-src lpm-handlers lpm-lib curl zip)
