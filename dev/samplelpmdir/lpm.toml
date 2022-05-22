@@ -1,16 +1,16 @@
 [lpm]
-db_backend = "sqlite"
+# The database backend used to store packages information
+db_backend = "sqlite3"
+# Directory where the database will be stored
 packages_db = "${LPM_ROOT}/packages.sqlite"
-# modules_path doesnt use ${?} because it describes a directory, not an individual file
-modules_path = "${LPM_ROOT}/modules/${lua_version}/${module_name}/${module_version}"
+# Directory where the packages will be stored
+packages_path = "${LPM_ROOT}/packages/${lua_version}/${package_name}"
+# Directory where repositories cache will be stored
 repositories_cache = "${LPM_ROOT}/cache/repositories/${?}.toml"
+# Directory where packages cache will be stored
 packages_cache = "${LPM_ROOT}/cache/packages/${package_name}/${?}"
 
 [luas]
 "Lua5.1" = "/usr/bin/lua5.1"
 "Lua5.3" = "/usr/bin/lua5.3"
 "default" = "/usr/bin/lua5.3"
-
-[sources.me-at-the-zoo]
-url = "https://raw.githubusercontent.com/coalio/me-at-the-zoo/master/me-at-the-zoo.toml"
-permission = "trusted"

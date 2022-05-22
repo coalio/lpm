@@ -3,6 +3,7 @@
 
 #pragma once
 
-#include "install.h"
-
 namespace Handlers {}
+
+#include "install.h"
+#include "configure.h"

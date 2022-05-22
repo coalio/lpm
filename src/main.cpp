@@ -2,8 +2,11 @@
 #include <string>
 #include <map>
 #include <algorithm>
+#include <cstdlib>
 #include "lpm/types.h"
 #include "lpm/macros.h"
+#include "lpm/env.h"
+#include "lpm/utils.h"
 #include "command.h"
 #include "args.h"
 #include "argparser.h"
@@ -15,14 +18,23 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // Check if LPM_ROOT is not set
+    if (std::getenv("LPM_ROOT") == NULL) {
+        // Use the default LPM_ROOT path
+        std::string* lpm_root = new std::string("LPM_ROOT=" LPM_DEFAULT_ROOT);
+        LPM::Env::fill_env_vars(*lpm_root);
+
+        // This memory will be freed by the OS when the process exits.
+        putenv(lpm_root->data());
+    }
+
     std::string command = argv[1];
-    args_t args = ArgParser::parse(argc, argv, 2);
+    std::vector<std::string> remainder;
+    args_t args = ArgParser::parse(argc, argv, 2, remainder);
 
     // Manually parse obligatory arguments.
     if (
-        command == "add" ||
-        command == "remove" ||
-        command == "show"
+        command == "remove" || command == "show"
     ) {
         if (argc < 3) {
             LPM_PRINT_ERROR("Missing argument: package_name"  << "\n");
@@ -31,7 +43,7 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        args["package_name"] = argv[2];
+        args["package_name"] = LPM::Utils::join(remainder, ' ');
     }
 
     Command::Type command_type = ArgParser::validate(command, args, LPM_VALID_ARGS);

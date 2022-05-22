@@ -10,11 +10,11 @@ local function hamming(str1, str2)
     return count
 end
 
--- When returning a lpm-based module, you can specify a
+-- When returning a lpm-based package, you can specify a
 -- second argument to specify the way that lpm should treat it.
 
--- By default (no second arg), the module is returned from the import function.
--- If you specify "env", then the module is loaded into the environment.
--- If you specify "global", then the module is loaded into the global environment,
+-- By default (no second arg), the package is returned from the import function.
+-- If you specify "env", then the package is loaded into the environment.
+-- If you specify "global", then the package is loaded into the global environment,
 
 return hamming, "env"

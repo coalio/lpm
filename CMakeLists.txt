@@ -2,7 +2,7 @@ message(STATUS "Thanks for using lpm!\n")
 cmake_minimum_required(VERSION 3.9)
 set(CMAKE_C_COMPILER "gcc")
 set(CMAKE_CXX_COMPILER "/usr/bin/g++")
-set(CMAKE_CXX_FLAGS "-std=c++2a")
+set(CMAKE_CXX_FLAGS "-std=c++2a -g")
 
 if (NOT BIN_INSTALL_DIR)
     set(BIN_INSTALL_DIR bin)
@@ -31,6 +31,7 @@ add_library(lpm-cli-src
 # Include command handlers
 add_library(lpm-handlers
     ./src/handlers/install.cpp
+    ./src/handlers/configure.cpp
 )
 
 # Include the library
@@ -42,4 +43,9 @@ install(TARGETS lpm-cli
 )
 
 # Link the libraries to the target
-target_link_libraries(lpm-cli PRIVATE lpm-cli-src lpm-handlers lpm-lib curl zip)
+target_link_libraries(
+    lpm-cli PRIVATE lpm-cli-src lpm-handlers lpm-lib
+
+    # Third-party dependencies
+    curl zip sqlite3 crypto ssl gmp gmpxx
+)

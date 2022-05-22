@@ -1,7 +1,7 @@
 -- This is useful:
 import = require("lpm").import
 
--- Optionally, if your module returns an object, you can do it as follows:
+-- Optionally, if your package returns an object, you can do it as follows:
 -- local hamming = import "hamming:latest"
 import "hamming:latest"
 

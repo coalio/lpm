@@ -38,7 +38,12 @@ namespace ArgParser {
         return Command::Type::UNKNOWN;
     }
 
-    args_t parse(int& argc, char* argv[], int start_index) {
+    args_t parse(
+        int& argc,
+        char* argv[],
+        int start_index,
+        std::vector<std::string>& remainder
+    ) {
         args_t args;
 
         for (int i = start_index; i < argc; i++) {
@@ -54,6 +59,8 @@ namespace ArgParser {
                 } else {
                     args[key] = "";
                 }
+            } else {
+                remainder.push_back(argv[i]);
             }
         }
 

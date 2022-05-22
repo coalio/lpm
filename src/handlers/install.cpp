@@ -1,5 +1,4 @@
 #include <curl/curl.h>
-#include <fstream>
 #include "lpm/macros.h"
 #include "lpm/manifests.h"
 #include "lpm/pathfinder.h"
@@ -9,27 +8,56 @@
 #include "lpm/utils.h"
 #include "lpm/dependencies.h"
 #include "lpm/errors.h"
+#include "lpm/repositories.h"
+#include "lpm/hashing.h"
 
 #include "install.h"
 
 using namespace LPM;
 using Response = Requests::Response;
 
+typedef std::map<unsigned long long, std::vector<std::string>> FilesMap;
+
+// todo:: TEST THIS, i already successfully compiled lpm, now we
+// have to test it and fix bugs, yay.
+
+// Installation mode
+enum InstallMode {
+    PROJECT = 0,
+    GLOBAL = 1
+};
+
 void Handlers::install(args_t& args) {
-    Errors::ErrorList errors;
-    Manifests::Packages packages(
-        LPM_PACKAGES_MANIFEST_NAME
-    );
+    // Installation mode (if a packages.toml file exists, it's a project installation)
+    InstallMode mode;
 
-    // Copy packages.dependencies into missing_dependencies
-    auto missing_dependencies = packages.dependencies;
-
-    // Check if dependencies are installed
-    for (auto& dependency : missing_dependencies) {
-        if (Dependencies::is_installed(dependency)) {
-            missing_dependencies.erase(dependency.first);
+    std::string packages_toml_path = PathFinder::locate_packages_toml();
+    if (!packages_toml_path.empty()) {
+        mode = PROJECT;
+    } else {
+        if (!args.count("global")) {
+            LPM_PRINT_ERROR("No packages.toml file found in the parent directories and no -g [--global] flag provided");
+            return;
         }
+
+        mode = GLOBAL;
     }
+
+    // Reusable error variable
+    std::string error;
+
+    // Map of installed files per package id
+    FilesMap installed_files;
+
+    // List of errors. We'll use this to log all errors that occur during the
+    // addation process.
+    Errors::ErrorList errors;
+
+    // Lua version to perform the installation for
+    std::string lua_version;
+
+    // List of dependencies to install. This list will grow recursively
+    std::vector<Dependencies::Dependency> dependencies_list;
 
     // Locate and load the lpm.toml file
     std::string config_path = PathFinder::locate_config();
@@ -39,246 +67,293 @@ void Handlers::install(args_t& args) {
 
     Manifests::Config config(config_path);
 
-    // Iterate through repositories and check if they have a cache
-    // If they dont, download it and then continue
-    for (auto& repository : config.repositories) {
-        auto& cache = repository.second["cache"];
-        std::string cache_path = cache;
-        Env::fill_env_vars(cache);
+    // Format the packages db path
+    std::string packages_db_path = config.packages_db;
+    Env::fill_env_vars(packages_db_path);
 
-        if (cache_path.empty()) {
-            LPM_PRINT_DEBUG("No cache path found for repository: " << repository.first);
-            LPM_PRINT_DEBUG("Downloading manifest from: " << repository.second["url"]);
+    // Connect to the packages db
+    DB::SQLite3 db_connection(packages_db_path);
 
-            // Create a new response object, we'll use this to
-            // store the response from the request.
+    if (mode == InstallMode::PROJECT) {
+        // Load the packages.toml manifest
+        Manifests::Packages packages(
+            LPM_PACKAGES_MANIFEST_NAME
+        );
+
+        if (args.count("lua_version") && args["lua_version"] != packages.lua_version) {
+            LPM_PRINT_ERROR("Lua version specified in the command line is not supported by the project");
+            return;
+        }
+
+        lua_version = packages.lua_version;
+
+        // Copy packages.dependencies into dependencies_list
+        for (auto& dependency : packages.dependencies) {
+            dependencies_list.push_back(dependency);
+        }
+    } else {
+        lua_version = args["lua_version"];
+
+        // TODO:: Set the list of packages to install from the arguments
+        // i left it here for reference
+    }
+
+    // We need to get a list of the repositories
+    // Let's get them from the database
+    std::vector<
+        std::map<std::string, std::string>
+    > repositories = Repositories::get_repositories(db_connection);
+
+    LPM_PRINT_DEBUG("Repositories size: " + std::to_string(repositories.size()));
+
+    // For every repository, check if we have a cache path for it
+    // If not, we'll download it from the repository url
+    for (auto& repository : repositories) {
+        std::string repository_cache_path = repository["cache"];
+
+        if (repository_cache_path.empty() || !Utils::fs::exists(repository_cache_path)) {
+            LPM_PRINT_DEBUG("No cache path found for repository: " << repository["name"]);
+            LPM_PRINT_DEBUG("Downloading manifest from: " << repository["url"]);
+
             Response response;
+            std::string repository_manifest_content;
 
             try {
                 // Initialize a new curl handle and give it a scope_destructor, so
                 // we can call curl_easy_cleanup() on it when it goes out of scope
                 scope_destructor<CURL*> curl_handle(curl_easy_init(), curl_easy_cleanup);
-                response = Requests::get(repository.second["url"], curl_handle.get());
+                response = Requests::get(repository["url"], curl_handle.get());
 
                 if (response.status_code != 200) {
-                    errors.add(
-                        "repository fetching",
-                        "(" + repository.first + ") cant download from: " + repository.second["url"] +
-                        ", status code " + std::to_string(response.status_code)
-                    );
+                    error =
+                        "(" + repository["name"] + ") cant download from: " + repository["url"] +
+                        ", status code " + std::to_string(response.status_code);
+                }
 
-                    continue;
+                if (response.body.empty()) {
+                    error = "(" + repository["name"] + ") empty response";
+                } else {
+                    repository_manifest_content = response.body;
                 }
             } catch (const std::exception& e) {
+                error =
+                    "(" + repository["name"] + ") cant download from: " + repository["url"] +
+                    ", error: " + e.what();
+            }
+
+            if (!error.empty()) {
                 errors.add(
                     "repository fetching",
-                    "(" + repository.first + ") cant download from: " + repository.second["url"] +
-                    ", error: " + e.what()
+                    error
                 );
-
-                continue;
+            } else {
+                error = "";
             }
 
             // Copy config.repositories_cache to cache_path
-            cache_path = config.repositories_cache;
+            repository_cache_path = config.repositories_cache;
 
             // Apply env vars without replacing empty values
-            Env::fill_env_vars(cache_path, false);
+            Env::fill_env_vars(repository_cache_path, false);
 
             // Apply the repository name
-            Utils::format(cache_path, {
-                {"?", repository.first}
+            Utils::format(repository_cache_path, {
+                {"?", repository["name"]}
             });
 
-            LPM_PRINT_DEBUG("Writing manifest to: " << cache_path);
+            LPM_PRINT_DEBUG("Writing manifest to: " << repository_cache_path);
 
             // Write the manifest to the cache path
-            if (!Utils::write_file(cache_path, response.body)) {
+            if (!Utils::write_file(repository_cache_path, repository_manifest_content)) {
                 errors.add(
                     "repository fetching",
-                    "(" + repository.first + ") cant write to: " + cache_path
+                    "(" + repository["name"] + ") cant write to: " + repository_cache_path
                 );
 
                 continue;
             }
 
-            // Update the config file
-            config.repositories[repository.first]["cache"] = cache_path;
-            config.save();
+            // Update the repository cache path in the database
+            repository["cache"] = repository_cache_path;
+            Repositories::update_repository_cache(
+                db_connection,
+                std::stoi(repository["id"]),
+                repository_cache_path
+            );
+
+            LPM_PRINT_DEBUG("Updated the repository cache path in the database");
+        }
+    }
+
+    std::string packages_path = Env::get("LPM_PACKAGES_PATH", config.packages_path);
+    std::vector<Dependencies::PackageInformation*> packages_to_install;
+
+    // For every dependency, call find_dependency
+    // TODO:: i left it here
+    // now i am supposed to implement all of the database procedures
+    // and make sure that packages are added to the database
+    // and that the changes i did to the repository::update_repository_cache
+    // are working as expected.
+
+    // i also need to check if the arg parsing is also working,
+    // i removed the "add" command as we're gonna use "install"
+    // for installing a packages.toml and a new package or packages
+    // so, we need to check if we can parse a packages list.
+
+    // BUT FOR NOW, lets just get the sqlite part working and
+    // let's compile and test it to see if it's going as expected.
+    for (size_t i = 0; i < dependencies_list.size(); i++) {
+        // Find the dependency
+        auto& dependency = dependencies_list[i];
+
+        // Get the expected package path for this dependency
+        // so we can check beforehand if it exists
+        std::string curr_package_path = packages_path;
+        Env::fill_env_vars(curr_package_path, false);
+        Utils::format(curr_package_path, {
+            {"package_name", dependency.first},
+            {"lua_version", lua_version}
+        });
+
+        // If the dependency is already added, skip it
+        if (Dependencies::is_added(db_connection, curr_package_path)) {
+            LPM_PRINT_DEBUG("Dependency " << dependency.first << " is already added");
+            continue;
         }
 
-        LPM_PRINT_DEBUG("Loading manifest from: " << cache_path);
+        auto& package = (
+            packages_to_install.push_back(
+                Dependencies::find_dependency(
+                    dependency,
+                    repositories
+                )
+            ),
+            packages_to_install.back()
+        );
 
-        Manifests::Repository repository_manifest(cache_path);
+        if (package == NULL) {
+            errors.add(
+                "dependency browsing",
+                "(" + dependency.first + ") cant find dependency in any of currently available repositories"
+            );
 
-        // Once we have the manifest, we can check if the package we need is defined in it
-        // So, lets iterate through missing dependencies
-        for (auto& missing_dependency : missing_dependencies) {
-            // If the package is defined in the manifest, we can install it
-            // and then remove it from the missing_dependencies
-            if (
-                repository_manifest.packages.find(missing_dependency.first) !=
-                repository_manifest.packages.end()
-            ) {
-                // Install the package
+            break;
+        }
 
-                LPM_PRINT_DEBUG("Package " << missing_dependency.first << " is defined in repository " << repository.first);
+        // Download the manifest
+        Requests::Response response;
+        std::string package_manifest_content;
 
-                auto& package =
-                    repository_manifest.packages[missing_dependency.first];
+        try {
+            // Initialize a new curl handle and give it a scope_destructor, so
+            // we can call curl_easy_cleanup() on it when it goes out of scope
+            scope_destructor<CURL*> curl_handle(curl_easy_init(), curl_easy_cleanup);
+            response = Requests::get(package->manifest_url, curl_handle.get());
 
-                // Check if this package has any versions
-                if (package.versions.empty()) {
-                    errors.add(
-                        "package search",
-                        "repository " + repository.first + " has no versions of " + missing_dependency.first
-                    );
+            if (response.status_code != 200) {
+                error =
+                    "(" + package->name + "@" + package->version + ") cant download from: " + package->manifest_url +
+                    ", status code " + std::to_string(response.status_code);
+            }
 
-                    continue;
-                }
+            if (response.body.empty()) {
+                error = "(" + package->name + "@" + package->version + ") empty response";
+            } else {
+                package_manifest_content = response.body;
+            }
+        } catch (const std::exception& e) {
+            error =
+                "(" + package->name + "@" + package->version + ") cant download from: " + package->manifest_url +
+                ", error: " + e.what();
+        }
 
-                // Check if the version we need is defined in the manifest
-                std::string package_version, package_url;
-                if (missing_dependency.second == "latest") {
-                    // Sort the keys of package.versions in descending order
-                    // so we can get the latest version
-                    std::vector<std::string> sorted_versions(package.versions.size());
-                    std::transform(
-                        package.versions.begin(),
-                        package.versions.end(),
-                        sorted_versions.begin(),
-                        [](const auto& pair) {
-                            return pair.first;
-                        }
-                    );
+        std::string manifest_cache_path = config.packages_cache;
 
-                    std::sort(
-                        sorted_versions.begin(),
-                        sorted_versions.end(),
-                        [](const auto& a, const auto& b) {
-                            // Get the major, minor and patch versions
-                            // of the versions
-                            std::string token;
-                            std::istringstream stream_a(a);
-                            std::istringstream stream_b(b);
+        Env::fill_env_vars(manifest_cache_path, false);
+        Utils::format(manifest_cache_path, {
+            {"package_name", package->name},
+            {"package_version", package->version},
+            {"?", package->name + "-" + package->version + "-manifest.toml"}
+        });
 
-                            std::vector<std::string> tokens_a;
-                            while (std::getline(stream_a, token, '.')) {
-                                if (!token.empty()) {
-                                    tokens_a.push_back(token);
-                                }
-                            }
+        if (!Utils::write_file(manifest_cache_path, package_manifest_content)) {
+            errors.add(
+                "dependency fetching",
+                "(" + package->name + "@" + package->version + ") cant write package manifest to: " + manifest_cache_path
+            );
 
-                            std::vector<std::string> tokens_b;
-                            while (std::getline(stream_b, token, '.')) {
-                                if (!token.empty()) {
-                                    tokens_b.push_back(token);
-                                }
-                            }
+            break;
+        }
 
-                            // Compare the major, minor and patch versions
-                            // of the versions
-                            size_t max_size = std::max(tokens_a.size(), tokens_b.size());
-                            for (size_t i = 0; i < max_size; i++) {
-                                if (tokens_a.size() - 1 < i || tokens_b.size() - 1 < i) {
-                                    return tokens_a.size() > tokens_b.size();
-                                }
+        // We need to analyze package dependencies and see if we can fulfill their requirements,
+        // otherwise we cannot add the package
+        Manifests::Package package_manifest(manifest_cache_path);
 
-                                if (tokens_a[i] != tokens_b[i]) {
-                                    return std::stoi(tokens_a[i]) > std::stoi(tokens_b[i]);
-                                }
-                            }
+        // Update PackageInformation package_url and package_type with the package_manifest datta
+        package->package_url = package_manifest.source.url;
+        package->package_type = package_manifest.source.package_type;
 
-                            return false;
-                        }
-                    );
-
-                    // Get the latest version
-                    const auto& latest_version = sorted_versions.front();
-                    package_url = package.versions[latest_version];
-                    package_version = latest_version;
-
-                    LPM_PRINT_DEBUG(
-                        "Latest version of " << missing_dependency.first << ":"
-                        << latest_version
-                    );
-                } else {
-                    // Check if the dependency version is defined in the package
-                    if (package.versions.find(missing_dependency.second) == package.versions.end()) {
-                        errors.add(
-                            "package search",
-                            "Dependency " + missing_dependency.first + ":" +
-                            missing_dependency.second + " is not defined in the package"
-                        );
-
-                        continue;
-                    }
-
-                    package_url = package.versions[missing_dependency.second];
-                    package_version = missing_dependency.second;
-
-                    LPM_PRINT_DEBUG("Version " << missing_dependency.second << " of " << missing_dependency.first << " is defined");
-                }
-
-                // Install the package
-                bool success;
-                std::string error;
-
-                // We need to copy and format packages_cache and modules_path
-                // to cache_path and module_path respectively.
-                std::string cache_path = config.packages_cache;
-                std::string module_path;
-                if (args.contains("global")) {
-                    // config.modules_path specifies the directory for global modules
-                    module_path = config.modules_path;
-                } else {
-                    // whereover LPM_DEFAULT_LOCAL_MODULES_PATH specifies the directory for project modules
-                    module_path = LPM_DEFAULT_LOCAL_MODULES_PATH;
-                }
-
-                // Dependencies::install doesn't format the paths, so we do it here
-                Env::fill_env_vars(cache_path, false);
-                Utils::format(cache_path, {
-                    {"package_name", package.name},
-                    {"package_version", package_version},
-                    {"?", package.name + "-" + package_version}
-                });
-
-                Env::fill_env_vars(module_path, false);
-                Utils::format(module_path, {
-                    {"module_name", package.name},
-                    {"module_version", package_version},
-                    {"lua_version", config.luas["default"]}
-                });
-
-
-
-                success = Dependencies::install(
-                    {package.name, package_version},
-
-                    package,
-                    cache_path,
-                    module_path,
-                    error
-                );
-
-                if (!success) {
-                    errors.add(
-                        "dependency installation",
-                        "("
-                            + missing_dependency.first + ":" + missing_dependency.second +
-                        ") " + error
-                    );
-
-                    continue;
-                } else {
-                    LPM_PRINT_DEBUG("Installed dependency " << missing_dependency.first << ":" << missing_dependency.second);
-
-                    missing_dependencies.erase(missing_dependency.first);
-                }
-
+        // Check package_manifest to see if its compatible with the current platform and lua version
+        bool is_compatible = false;
+        [[maybe_unused]] std::string lua_bin;
+        for (auto [version, lua_bin] : config.luas) {
+            if (version == lua_version || version == "*") {
+                is_compatible = true;
+                break;
             }
         }
+
+        if (!is_compatible) {
+            errors.add(
+                "dependency fetching",
+                "(" + package->name + "@" + package->version + ") is not compatible with " + lua_version
+            );
+
+            break;
+        }
+
+        // TODO:: Add platform checking (also deduce installation candidate based on the platform)
+
+        for (auto& package_manifest_dependency : package_manifest.dependencies) {
+            // Add the dependency to the dependencies_list list
+            dependencies_list.push_back(package_manifest_dependency);
+        }
+    }
+
+    // Once we're done auditing the dependencies, we can add the packages
+    for (auto& package : packages_to_install) {
+        // Install the package (add it to the list of installed packages)
+        // TODO:: Use Dependencies::add here and pass the PackageInformation to finally install the package
+        std::string package_cache_path = config.packages_cache;
+        Env::fill_env_vars(package_cache_path, false);
+
+        if (package->package_type == "zip") {
+            Utils::format(package_cache_path, {
+                {"package_name", package->name},
+                {"package_version", package->version},
+                {"?", package->name + "-" + package->version + ".zip"}
+            });
+        }
+
+        std::string curr_package_path = packages_path;
+        Env::fill_env_vars(curr_package_path, false);
+        Utils::format(curr_package_path, {
+            {"package_name", package->name},
+            {"lua_version", lua_version}
+        });
+
+        // Call Dependencies::add to download and extract the package at the curr_package_path directory
+        if (!Dependencies::add(db_connection, package, package_cache_path, curr_package_path, error)) {
+            errors.add(
+                "dependency installation",
+                "(" + package->name + "@" + package->version + ") unable to install: " + error
+            );
+        } else {
+            LPM_PRINT_DEBUG("Installed package: " << package->name << "@" << package->version << " at " << curr_package_path);
+        }
+
+        // Delete the package from the list of packages to install
+        delete package;
     }
 
     errors.print();

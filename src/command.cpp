@@ -11,6 +11,9 @@ bool Command::execute(Type command_type, args_t& args) {
             case Type::INSTALL:
                 Handlers::install(args);
                 break;
+            case Type::CONFIGURE:
+                Handlers::configure(args);
+                break;
             default:
                 LPM_PRINT_ERROR("Unsupported command: " << command_type);
                 return false;

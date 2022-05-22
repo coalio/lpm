@@ -1,0 +1,115 @@
+-- This is the initial packages.sqlite migration SQL.
+-- It creates the entire structure, and adds a default repository.
+--
+PRAGMA foreign_keys = off;
+BEGIN TRANSACTION;
+
+-- Table: files
+CREATE TABLE files (
+    id        INTEGER      PRIMARY KEY ON CONFLICT ROLLBACK AUTOINCREMENT
+                           UNIQUE ON CONFLICT ROLLBACK
+                           NOT NULL ON CONFLICT ROLLBACK,
+    location  TEXT         UNIQUE ON CONFLICT ROLLBACK
+                           NOT NULL ON CONFLICT ROLLBACK,
+    integrity VARCHAR (64) NOT NULL ON CONFLICT ROLLBACK
+);
+
+
+-- Table: log
+CREATE TABLE log (
+    id       INTEGER       PRIMARY KEY ON CONFLICT ROLLBACK AUTOINCREMENT
+                           UNIQUE
+                           NOT NULL,
+    [action] VARCHAR (255) NOT NULL,
+    summary  VARCHAR (255),
+    affected TEXT          NOT NULL ON CONFLICT ROLLBACK,
+    datetime DATETIME      NOT NULL ON CONFLICT ROLLBACK
+                           DEFAULT (DATETIME('now') )
+);
+
+
+-- Table: package_file_relations
+CREATE TABLE package_file_relations (
+    id         INTEGER PRIMARY KEY ON CONFLICT ROLLBACK AUTOINCREMENT
+                       UNIQUE ON CONFLICT ROLLBACK
+                       NOT NULL ON CONFLICT ROLLBACK,
+    package_id BIGINT  REFERENCES packages (id)
+                       NOT NULL,
+    file_id    INTEGER NOT NULL ON CONFLICT ROLLBACK
+                       REFERENCES files (id)
+);
+
+
+-- Table: packages
+CREATE TABLE packages (
+    id         TEXT         PRIMARY KEY ON CONFLICT REPLACE
+                            UNIQUE ON CONFLICT REPLACE
+                            NOT NULL ON CONFLICT ROLLBACK,
+    name       VARCHAR (64) NOT NULL ON CONFLICT ROLLBACK,
+    version    VARCHAR (64) NOT NULL ON CONFLICT ROLLBACK,
+    repository INTEGER      NOT NULL ON CONFLICT ROLLBACK
+                            REFERENCES repositories (id)
+);
+
+
+-- Table: project_package_relations
+CREATE TABLE project_package_relations (
+    id         INTEGER PRIMARY KEY ON CONFLICT ROLLBACK AUTOINCREMENT
+                       UNIQUE ON CONFLICT ROLLBACK
+                       NOT NULL ON CONFLICT ROLLBACK,
+    project_id INTEGER NOT NULL ON CONFLICT ROLLBACK
+                       REFERENCES projects (id),
+    package_id BIGINT  NOT NULL ON CONFLICT ROLLBACK
+                       REFERENCES packages (id)
+);
+
+
+-- Table: projects
+CREATE TABLE projects (
+    id                INTEGER PRIMARY KEY ON CONFLICT ROLLBACK AUTOINCREMENT
+                              UNIQUE ON CONFLICT ROLLBACK
+                              NOT NULL ON CONFLICT ROLLBACK,
+    manifest_location TEXT    UNIQUE ON CONFLICT ROLLBACK
+                              NOT NULL ON CONFLICT ROLLBACK
+);
+
+INSERT INTO projects (
+                         id,
+                         manifest_location
+                     )
+                     VALUES (
+                         0,
+                         'global'
+                     );
+
+
+-- Table: repositories
+CREATE TABLE repositories (
+    id         INTEGER       PRIMARY KEY ON CONFLICT ROLLBACK AUTOINCREMENT
+                             UNIQUE ON CONFLICT ROLLBACK
+                             NOT NULL ON CONFLICT ROLLBACK,
+    name       VARCHAR (255) NOT NULL ON CONFLICT ROLLBACK,
+    url        TEXT          NOT NULL ON CONFLICT ROLLBACK,
+    cache      TEXT,
+    permission VARCHAR (8)   NOT NULL
+                             DEFAULT [restrict]
+);
+
+INSERT INTO repositories (
+                             id,
+                             name,
+                             url,
+                             cache,
+                             permission
+                         )
+                         VALUES (
+                             1,
+                             'me-at-the-zoo',
+                             'https://raw.githubusercontent.com/coalio/me-at-the-zoo/master/me-at-the-zoo.toml',
+                             NULL,
+                             'trusted'
+                         );
+
+
+COMMIT TRANSACTION;
+PRAGMA foreign_keys = on;

@@ -2,7 +2,7 @@
 
 The LPM sample project.
 
-This project uses the module `hamming` to calculate the Hamming distance between two strings.
+This project uses the package `hamming` to calculate the Hamming distance between two strings.
 
 ## Getting started
 

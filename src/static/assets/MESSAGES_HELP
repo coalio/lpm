@@ -1,0 +1,60 @@
+Usage: lpm <command> [... args]
+           ├── audit: Checks the integrity of an installed package or packages
+           ├── configure: Configures lpm
+           ├── help: Displays this help message
+           ├── init: Initializes a packages.toml with basic information
+           ├── install: Installs packages
+           ├── purge: Uninstalls lua_modules
+           ├── remove: Removes a package
+           ├── run: Runs a package
+           ├── show: Displays information about a package
+           └── update: Updates a package
+
+Options:
+    audit: Checks the integrity of a package or packages.
+
+    configure: Allows you to configure lpm settings.
+
+    help [--help, -h]: Displays this help message.
+
+    init: Initializes a packages.toml file.
+        --name=<name>
+        --version=<version>
+        --description=<description>
+        --author=<author>
+        --license=<license>
+        --homepage=<homepage>
+        --repository=<repository>
+        --main=<main>
+        --lua-version=<lua-version>
+
+    install: Installs packages provided as arguments or from a packages.toml.
+        --recursive [-r]: Installs all packages.toml recursively, starting at the current directory.
+
+    list: Lists all installed packages.
+        --global [-g]: Lists all globally installed packages.
+
+    purge: Purges all packages installed by LPM for the current project.
+        --recursive [-r]: Purges all packages recursively, starting at current directory.
+
+    remove <package_name>: Removes a package.
+        --global [-g]: Removes package globally.
+
+    repository <action>: Manages repositories.
+        add <repository>: Adds a repository
+        remove <repository>: Removes a repository
+        list: Lists all available repositories
+        update: Updates all repositories
+
+    run <package_name | path/to/package>: Runs a package's entry point if specified.
+        --lua-version <lua-version>: Runs the package for this lua version.
+                                     Cant be used if path/to/package is specified.
+
+    search <package_name>: Searches for a package in all available repositories.
+
+    show <package_name>: Displays information about a package.
+        --global [-g]: Displays information about a package globally.
+        --version: Displays information about a specific version of this package.
+
+    update <package_name>: Updates a package.
+        --global [-g]: Updates package globally.

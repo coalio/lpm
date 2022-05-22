@@ -2,7 +2,9 @@
 
 LPM is a package manager for the Lua language, designed to be flexible, extensible and easy to use.
 
----
+Currently, it's still in (very) early development, and the design is based in feedback from the community.
+
+## Currently working on it!
 
 Last Commit ([lpm](https://github.com/coalio/lpm/commits/master))
 
@@ -12,18 +14,53 @@ Last Commit ([lib-lpm](https://github.com/coalio/lib-lpm))
 
 [![Last Commit (lib-lpm)](https://img.shields.io/github/last-commit/coalio/lib-lpm)](https://github.com/coalio/lib-lpm/commits/master)
 
+## Build from source
+
+*Assuming you have CMake 3.16.0 or newer installed*
+
+Install LPM dependencies (libzip, libsqlite3, libcurl, libssl, libgmp3):
+
+```bash
+sudo apt install libzip-dev libsqlite3-dev libcurl4-openssl-dev libssl-dev libgmp3-dev
+
+```
+
+Then, you can build LPM from source:
+
+```bash
+git clone --recurse-submodules https://github.com/coalio/lpm lpm
+cd lpm
+cd build
+bash build.sh
+```
+
+## Usage
+
 ```
 Usage: lpm <command> [... args]
-           ├── init: Iniializes a packages.toml with basic information
-           ├── install: Finds and installs a packages.toml
            ├── add: Adds a new package
-           ├── remove: Removes a module
            ├── audit: Checks the integrity of all installed packages
+           ├── configure: Configures lpm
+           ├── help: Displays this help message
+           ├── init: Initializes a packages.toml with basic information
+           ├── install: Finds and installs a packages.toml
+           ├── purge: Uninstalls lua_modules
+           ├── remove: Removes a package
+           ├── run: Runs a package
            ├── show: Displays information about a package
-           └── purge: Uninstalls lua_modules
+           └── update: Updates a package
 
 Options:
-    --help [-h]: Show this screen.
+    add <package_name>: Installs a package.
+        --global [-g]: Install package globally.
+        --version: Install specific version of this package. Defaults to latest version.
+        --lua-version <lua-version>: Installs the package for this lua version.
+
+    audit: Checks the integrity of all installed packages in the current project.
+
+    configure: Allows you to configure lpm settings.
+
+    help [--help, -h]: Displays this help message.
 
     init: Initializes a packages.toml file.
         --name=<name>
@@ -39,22 +76,31 @@ Options:
     install: Finds a packages.toml file and installs all modules in it.
         --recursive [-r]: Installs all packages.toml files recursively, starting at the current directory.
 
-    add <package_name>: Installs a package
-        --global [-g]: Install package globally. Only available for compiled packages.
-        --version: Install specific version of this package.
-        --lua-version=<lua-version>: Installs the latest version of this package compliant with this lua version.
+    list: Lists all installed packages.
+        --global [-g]: Lists all globally installed packages.
 
-    remove <package_name>: Removes a package
-        --global [-g]: Removes package globally. Only available for compiled packages.
-        --version: Removes specific version of this package.
+    purge: Purges all packages installed by LPM for the current project.
+        --recursive [-r]: Purges all packages recursively, starting at current directory.
 
-    audit: Checks the integrity of all installed packages in the current directory.
-        --recursive [-r]: Does the above but recursively, starting at current directory.
+    remove <package_name>: Removes a package.
+        --global [-g]: Removes package globally.
 
-    show <package_name>: Displays information about a package
-        --global [-g]: Displays information about a package globally. Only available for compiled packages.
+    repository <action>: Manages repositories.
+        add <repository>: Adds a repository
+        remove <repository>: Removes a repository
+        list: Lists all available repositories
+        update: Updates all repositories
+
+    run <package_name | path/to/package>: Runs a package's entry point, if runnable.
+        --lua-version <lua-version>: Runs the package for this lua version.
+                                     Cant be used if path/to/package is specified.
+
+    search <package_name>: Searches for a package in all available repositories.
+
+    show <package_name>: Displays information about a package.
+        --global [-g]: Displays information about a package globally.
         --version: Displays information about a specific version of this package.
 
-    purge: Uninstalls all lua_modules
-        --recursive [-r]: Uninstalls all lua_modules recursively, starting at current directory.
+    update <package_name>: Updates a package.
+        --global [-g]: Updates package globally.
 ```

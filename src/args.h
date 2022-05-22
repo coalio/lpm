@@ -2,16 +2,11 @@
 #include "lpm/types.h"
 
 args_map_t const LPM_VALID_ARGS {
-    {"add", {
-        "package_name",
-        "global",
-        "version",
-        "lua-version"
-    }},
     {"audit", {
         "recursive"
     }},
-    {"help", {""}},
+    {"configure", {}},
+    {"help", {}},
     {"init", {
         "name",
         "version",
@@ -24,6 +19,10 @@ args_map_t const LPM_VALID_ARGS {
         "lua-version",
     }},
     {"install", {
+        "package_name",
+        "global",
+        "version",
+        "lua-version",
         "recursive"
     }},
     {"list", {

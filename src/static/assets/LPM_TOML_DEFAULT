@@ -1,0 +1,11 @@
+[lpm]
+# The database backend used to store packages information
+db_backend = "sqlite3"
+# Directory where the database will be stored
+packages_db = "${LPM_ROOT}/packages.sqlite"
+# Directory where the packages will be stored
+packages_path = "${LPM_ROOT}/packages/${lua_version}/${package_name}"
+# Directory where repositories cache will be stored
+repositories_cache = "${LPM_ROOT}/cache/repositories/${?}.toml"
+# Directory where packages cache will be stored
+packages_cache = "${LPM_ROOT}/cache/packages/${package_name}/${?}"

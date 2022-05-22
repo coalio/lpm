@@ -5,8 +5,8 @@
 
 namespace Command {
     enum Type {
-        ADD = 0,
-        AUDIT = 1,
+        AUDIT = 0,
+        CONFIGURE = 1,
         HELP = 2,
         INIT = 3,
         INSTALL = 4,
