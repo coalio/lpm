@@ -47,5 +47,5 @@ target_link_libraries(
     lpm-cli PRIVATE lpm-cli-src lpm-handlers lpm-lib
 
     # Third-party dependencies
-    curl zip sqlite3 crypto ssl gmp gmpxx
+    curl zip sqlite3 crypto ssl gmpxx gmp
 )

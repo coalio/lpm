@@ -9,7 +9,7 @@ repository = "https://github.com/coalio/lpm"
 # Main entry point (when lpm start is called)
 main = "main.lua"
 # Valid lua versions: LuaJIT/Lua<version>
-lua_version = "Lua5.2"
+lua_version = "Lua5.3"
 
 [dependencies]
 hamming = "latest"

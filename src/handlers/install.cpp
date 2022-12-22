@@ -18,9 +18,6 @@ using Response = Requests::Response;
 
 typedef std::map<unsigned long long, std::vector<std::string>> FilesMap;
 
-// todo:: TEST THIS, i already successfully compiled lpm, now we
-// have to test it and fix bugs, yay.
-
 // Installation mode
 enum InstallMode {
     PROJECT = 0,
@@ -50,7 +47,7 @@ void Handlers::install(args_t& args) {
     FilesMap installed_files;
 
     // List of errors. We'll use this to log all errors that occur during the
-    // addation process.
+    // installation process.
     Errors::ErrorList errors;
 
     // Lua version to perform the installation for
@@ -86,6 +83,19 @@ void Handlers::install(args_t& args) {
         }
 
         lua_version = packages.lua_version;
+
+        bool is_compatible = false;
+        for (auto [version, lua_bin] : config.luas) {
+            if (version == lua_version) {
+                is_compatible = true;
+                break;
+            }
+        }
+
+        if (!is_compatible) {
+            LPM_PRINT_ERROR("Lua version specified in the project is not supported by the lpm.toml file");
+            return;
+        }
 
         // Copy packages.dependencies into dependencies_list
         for (auto& dependency : packages.dependencies) {
@@ -183,10 +193,12 @@ void Handlers::install(args_t& args) {
 
             LPM_PRINT_DEBUG("Updated the repository cache path in the database");
         }
+
+        LPM_PRINT_DEBUG("Cache path found for repository: " << repository["name"]);
     }
 
     std::string packages_path = Env::get("LPM_PACKAGES_PATH", config.packages_path);
-    std::vector<Dependencies::PackageInformation*> packages_to_install;
+    std::vector<Dependencies::PackageData> packages_to_install;
 
     // For every dependency, call find_dependency
     // TODO:: i left it here
@@ -231,7 +243,7 @@ void Handlers::install(args_t& args) {
             packages_to_install.back()
         );
 
-        if (package == NULL) {
+        if (package.name.empty()) {
             errors.add(
                 "dependency browsing",
                 "(" + dependency.first + ") cant find dependency in any of currently available repositories"
@@ -248,22 +260,22 @@ void Handlers::install(args_t& args) {
             // Initialize a new curl handle and give it a scope_destructor, so
             // we can call curl_easy_cleanup() on it when it goes out of scope
             scope_destructor<CURL*> curl_handle(curl_easy_init(), curl_easy_cleanup);
-            response = Requests::get(package->manifest_url, curl_handle.get());
+            response = Requests::get(package.manifest_url, curl_handle.get());
 
             if (response.status_code != 200) {
                 error =
-                    "(" + package->name + "@" + package->version + ") cant download from: " + package->manifest_url +
+                    "(" + package.name + "@" + package.version + ") cant download from: " + package.manifest_url +
                     ", status code " + std::to_string(response.status_code);
             }
 
             if (response.body.empty()) {
-                error = "(" + package->name + "@" + package->version + ") empty response";
+                error = "(" + package.name + "@" + package.version + ") empty response";
             } else {
                 package_manifest_content = response.body;
             }
         } catch (const std::exception& e) {
             error =
-                "(" + package->name + "@" + package->version + ") cant download from: " + package->manifest_url +
+                "(" + package.name + "@" + package.version + ") cant download from: " + package.manifest_url +
                 ", error: " + e.what();
         }
 
@@ -271,15 +283,15 @@ void Handlers::install(args_t& args) {
 
         Env::fill_env_vars(manifest_cache_path, false);
         Utils::format(manifest_cache_path, {
-            {"package_name", package->name},
-            {"package_version", package->version},
-            {"?", package->name + "-" + package->version + "-manifest.toml"}
+            {"package_name", package.name},
+            {"package_version", package.version},
+            {"?", package.name + "-" + package.version + "-manifest.toml"}
         });
 
         if (!Utils::write_file(manifest_cache_path, package_manifest_content)) {
             errors.add(
                 "dependency fetching",
-                "(" + package->name + "@" + package->version + ") cant write package manifest to: " + manifest_cache_path
+                "(" + package.name + "@" + package.version + ") cant write package manifest to: " + manifest_cache_path
             );
 
             break;
@@ -290,13 +302,28 @@ void Handlers::install(args_t& args) {
         Manifests::Package package_manifest(manifest_cache_path);
 
         // Update PackageInformation package_url and package_type with the package_manifest datta
-        package->package_url = package_manifest.source.url;
-        package->package_type = package_manifest.source.package_type;
+        // Jun 5 2022: Figure why the Dependencies::add function
+        // cannot check the package type even though its supposed to
+        // be setted here
+        package.package_url = package_manifest.source.url;
+        package.package_type = package_manifest.source.package_type;
+
+        // If package_url or package_type are empty or not supported, we
+        // cannot install the package
+        if (package.package_url.empty() || package.package_type.empty() ||
+            !package.package_type.compare("zip")) {
+            errors.add(
+                "dependency fetching",
+                "(" + package.name + "@" + package.version + ") package type: " + package.package_type +
+                " is not supported"
+            );
+
+            break;
+        }
 
         // Check package_manifest to see if its compatible with the current platform and lua version
         bool is_compatible = false;
-        [[maybe_unused]] std::string lua_bin;
-        for (auto [version, lua_bin] : config.luas) {
+        for (auto version : package_manifest.support.lua_version) {
             if (version == lua_version || version == "*") {
                 is_compatible = true;
                 break;
@@ -306,7 +333,7 @@ void Handlers::install(args_t& args) {
         if (!is_compatible) {
             errors.add(
                 "dependency fetching",
-                "(" + package->name + "@" + package->version + ") is not compatible with " + lua_version
+                "(" + package.name + "@" + package.version + ") is not compatible with " + lua_version
             );
 
             break;
@@ -320,25 +347,25 @@ void Handlers::install(args_t& args) {
         }
     }
 
-    // Once we're done auditing the dependencies, we can add the packages
+    // Once we're done checking the dependencies, we can add the packages
     for (auto& package : packages_to_install) {
         // Install the package (add it to the list of installed packages)
         // TODO:: Use Dependencies::add here and pass the PackageInformation to finally install the package
         std::string package_cache_path = config.packages_cache;
         Env::fill_env_vars(package_cache_path, false);
 
-        if (package->package_type == "zip") {
+        if (package.package_type == "zip") {
             Utils::format(package_cache_path, {
-                {"package_name", package->name},
-                {"package_version", package->version},
-                {"?", package->name + "-" + package->version + ".zip"}
+                {"package_name", package.name},
+                {"package_version", package.version},
+                {"?", package.name + "-" + package.version + ".zip"}
             });
         }
 
         std::string curr_package_path = packages_path;
         Env::fill_env_vars(curr_package_path, false);
         Utils::format(curr_package_path, {
-            {"package_name", package->name},
+            {"package_name", package.name},
             {"lua_version", lua_version}
         });
 
@@ -346,14 +373,11 @@ void Handlers::install(args_t& args) {
         if (!Dependencies::add(db_connection, package, package_cache_path, curr_package_path, error)) {
             errors.add(
                 "dependency installation",
-                "(" + package->name + "@" + package->version + ") unable to install: " + error
+                "(" + package.name + "@" + package.version + ") unable to install: " + error
             );
         } else {
-            LPM_PRINT_DEBUG("Installed package: " << package->name << "@" << package->version << " at " << curr_package_path);
+            LPM_PRINT_DEBUG("Installed package: " << package.name << "@" << package.version << " at " << curr_package_path);
         }
-
-        // Delete the package from the list of packages to install
-        delete package;
     }
 
     errors.print();

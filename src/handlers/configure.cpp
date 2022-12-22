@@ -131,13 +131,17 @@ void Handlers::configure(args_t& args) {
             // Give owner S_IRWXU permissions to the database
             // This is needed for the database to be accessible by
             // external utilities. By default it's read-only.
-            wlchmod(db_path.c_str(), S_IRWXU);
+            // wlchmod(db_path.c_str(), S_IRWXU);
 
             // If the database is new, we need to create the structure,
             // so let's do that by running the initialization migration
-            bool success = db.execute(
+            bool success = db.prepare(
                 reinterpret_cast<char*>(LPM_SQL_INIT_MIGRATION)
-            );
+            ).execute();
+
+            if (!success) {
+                LPM_PRINT_ERROR("Unable to initialize LPM database");
+            }
         }
     } catch (...) {
         LPM_PRINT_ERROR(
